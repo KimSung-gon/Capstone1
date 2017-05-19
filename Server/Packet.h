@@ -83,7 +83,6 @@ public:
 	char* convertStringToChar(const string &str);
 	string convertDecStringToHexString(const string decString);	
 	void itoa(int num, char *str);
-	int atoi(char *str);
 	string systemCommand(string sysCommand);
 };
 

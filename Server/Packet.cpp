@@ -102,35 +102,25 @@ string Packet::getLoginSuccess() {
 
 void Packet::addString1() {
 
-	char str1[20];
-	char str2[20];
-	itoa(this->getSyn(), str1);
-	itoa(this->getAck(), str2);
-	
     packetInfo1 = "";
     packetInfo1 = packetInfo1.append(this->getCommand() 
 		+ "{$}" + this->getUserID() 
 		+ "{$}" + this->getUserPasswd() 
 		+ "{$}" + this->getUserRootTempPasswd() 
-		+ "{$}" + str1 
-		+ "{$}" + str2 
+		+ "{$}" + this->getSyn()
+		+ "{$}" + this->getAck()
 		);
 }
 
 void Packet::addString2() {
 
-	char str1[20];
-	char str2[20];
-	itoa(this->getSyn(), str1);
-	itoa(this->getAck(), str2);
-    
-	packetInfo2 = "";
+    packetInfo2 = "";
     packetInfo2 = packetInfo2.append(this->getCommand() 
 		+ "{$}" + this->getUserGlobalIP()
-		+ "{$}" + this->getUserLocalIP()
+//		+ "{$}" + this->getUserLocalIP()
 		+ "{$}" + this->getUserMAC() 
-		+ "{$}" + str1
-		+ "{$}" + str2
+		+ "{$}" + this->getSyn()
+		+ "{$}" + this->getAck()
 		);
 }
 
@@ -249,15 +239,6 @@ void Packet::itoa(int num, char *str) {
 	deg /= radix;
     }
     *(str+i) = '\0';
-}
-
-int Packet::atoi(char *str){    
-    int tot=0;
-    while(*str){    
-        tot = tot*10 + *str - '0';  
-        str++;    
-    }
-    return tot;
 }
 
 string Packet::systemCommand(string sysCommand) {

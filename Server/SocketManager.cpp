@@ -30,6 +30,10 @@ Packet SocketManager::getPacket() {
 	return this->packet;
 }
 
+vector<Packet> SocketManager::getVPacket() {
+	return this->vPacket;
+}
+
 vector<nSocket> SocketManager::getVNSocket() {
 	return this->vNSocket;
 }
@@ -61,7 +65,7 @@ pthread_t SocketManager::getThread(long unsigned int indexOfMessage) {
 void SocketManager::stopThread(pthread_t thread) {
 	pthread_join(thread, &thread_result);
 }
-
+/*
 void* SocketManager::sendHeaderMessage(void* sock) {
 	int sockTemp = (intptr_t)sock;
 	char message[53];
@@ -114,13 +118,31 @@ void* SocketManager::sendHeaderMessage(void* sock) {
 	message[52] = '}';
 	cout << message << endl;
 	write(sockTemp, message, strlen(message)+1);
-}
-
+}*/
+/*
 void* SocketManager::sendBodyMessage(void* sock) {
 	int sockTemp = (intptr_t)sock;
 	char message[packet.getBodyInfo().length()+1];
 	strcpy(message, packet.getBody().getBodyInfo().c_str());
 	message[packet.getBodyInfo().length()] = NULL;
+	cout << message << endl;
+	write(sockTemp, message, strlen(message)+1);
+}*/
+
+void* SocketManager::sendMessage1(void* sock) {
+	int sockTemp = (intptr_t)sock;
+	char message[packet.getBodyInfo().length()+1];
+	strcpy(message, getVPacket.back().c_str());
+	message[packet.getPacketInfo1().length()] = NULL;
+	cout << message << endl;
+	write(sockTemp, message, strlen(message)+1);
+}
+
+void* SocketManager::sendMessage2(void* sock) {
+	int sockTemp = (intptr_t)sock;
+	char message[packet.getBodyInfo().length()+1];
+	strcpy(message, getVPacket.back().c_str());
+	message[packet.getPacketInfo2().length()] = NULL;
 	cout << message << endl;
 	write(sockTemp, message, strlen(message)+1);
 }
@@ -138,7 +160,7 @@ void* SocketManager::recvMessageFromUI(void* sock) {
 	divideUIInfo(message);
 }
 
-void* SocketManager::recvMessageFromServ(void* sock) {
+void* SocketManager::recvMessageFromClient1(void* sock) {
 	int sockTemp = (intptr_t)sock;
 	char message[500];
 	int str_len;
@@ -150,7 +172,7 @@ void* SocketManager::recvMessageFromServ(void* sock) {
 		return (void*)1;
    	}
 	message[str_len]=0;
-	packet.setPacketInfo(message);
+	divideClientInfo1(message);
 	cout << message << endl;
 }
 
@@ -193,6 +215,15 @@ void SocketManager::itoa(int num, char* str) {
         deg /= radix;
     }
     *(str+i) = '\0';
+}
+
+void SocketManager::atoi(char *str) {
+	int tot=0;
+	while(*str) {
+		tot = tot*10 + *str - '0';
+		str++;
+	}
+	return tot;
 }
 
 int SocketManager::connSock(nSocket sock, string IP, string port) {
@@ -272,23 +303,39 @@ void SocketManager::sendUserIDToCommandProc(void* sock) {
 }
 
 void SocketManager::managerStart() {
+	
+	// read ip, mac list to client list
 	nSocket sock;
 	vNSocket.push_back(sock);
-	string port = "10000";
+	string port = "9000";
 	sock.initSock();
 	sock.initSockAddrSelf(port);
 	sock.acceptSock(sock.getSock(), sock.getSockAddr());
-	recvMessageFromUI((void*)sock.getSockToSend());
-	close(sock.getSock());
-	nSocket sock1;
+	recvMessageFromClient1((void*)sock.getSockToSend());
+	for(vector<Packet>::iterator IterPos = getVPacket().begin(); IterPos != getVPacket().end(); ++IterPos) {
+		// check if packet is in client list
+	}
+	// execute command and delete history(atomic) 
+		
+	getVPacket().back().makeSyn();
+	sendMessage1((void*)sock.getSock());	
+	if((getVPacket.pop_back().checkAck() == "true") && (getVPacket.pop_back().getLoginSuccess() == "true")) {
+		getVPacket().back().setLoginSuccess("true");		
+	}
+	else {
+		getVPacket().back().setLoginSuccess("false");
+	}
+		
+	nSocket sockClient;
 	sock1.setSock((intptr_t)login());
 	maxDBListChangedNOTI(sock1.getSock());	
 }
 
-void SocketManager::divideUIInfo(string UIInfo) {
+void SocketManager::divideClientInfo1(string clientInfo) {
+	Packet packet = new Packet();
 	char message[120];
 	char messagePiece[50];
-	string temp = UIInfo;
+	string temp = clientInfo;
 	char* pStr = convertStringToChar(temp);
 	
 	char tempPStr[120];
@@ -307,12 +354,53 @@ void SocketManager::divideUIInfo(string UIInfo) {
 		messagePiece[49] = NULL;
 		
 		if(count == 0)
-			setServerPort(messagePiece);
+			packet.setUserID(messagePiece);
 		else if(count == 1)
-			loginID = messagePiece;
+			packet.setUserPasswd(messagePiece);
 		else if(count == 2)
-			password = messagePiece;
+			packet.setUserRootPasswd(messagePiece);
+		else if(count == 3) 
+			packet.setSyn(atoi(messagePiece));
+		else if(count == 4) 
+			packet.setAck(atoi(messagePiece));
 
+		count++;
+	}
+	getVPacket.push_back(pakcet);
+}
+
+void SocketManager::divideClientInfo2(string clientInfo) {
+	char message[120];
+	char messagePiece[50];
+	string temp = clientInfo;
+	char* pStr = convertStringToChar(temp);
+	
+	char tempPStr[120];
+	strcpy(tempPStr, pStr);
+	char* delim = "{$}";
+	char* token;
+	int indexOfMessage = 0;
+	token = strtok(tempPStr, delim);
+	strcpy(messagePiece, token);
+	messagePiece[49] = NULL;
+	setServerIP(messagePiece);
+	int count = 0;
+	while( token = strtok(NULL, "{$}") ) {
+		memset(messagePiece, NULL, sizeof(messagePiece));
+		strcpy(messagePiece, token);
+		messagePiece[49] = NULL;
+	
+		if(count == 0)
+			packet.setUserGlobalIP(messagePiece);
+		else if(count == 1)
+			packet.setUserLocalIP(messagePiece);
+		else if(count == 2)
+			packet.setUserMAC(messagePiece);
+		else if(count == 3) 
+			packet.setSyn(atoi(messagePiece));
+		else if(count == 4) 
+			packet.setAck(atoi(messagePiece));
+		
 		count++;
 	}
 }

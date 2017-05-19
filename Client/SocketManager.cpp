@@ -6,20 +6,20 @@ SocketManager::SocketManager(Packet packet) {
 	this->packet = packet;
 }
 
-void SocketManager::setServerIP(string serverIP) {
-	this->serverIP = serverIP;
+void SocketManager::setServIP(string servIP) {
+	this->servIP = servIP;
 }
 
-void SocketManager::setServerPort(string serverPort) {
-	this->serverPort = serverPort;
+void SocketManager::setServPort(string servPort) {
+	this->servPort = servPort;
 }
 
-string SocketManager::getServerIP() {
-	return serverIP;
+string SocketManager::getServIP() {
+	return servIP;
 }
 
-string SocketManager::getServerPort() {
-	return serverPort;
+string SocketManager::getServPort() {
+	return servPort;
 }
 
 void SocketManager::setPacket(Packet packet) {
@@ -54,14 +54,14 @@ pthread_t SocketManager::getThread(long unsigned int indexOfMessage) {
 	return this->vThread.at(indexOfMessage);
 }
 
-//void* SocketManager::execThread(pthread_t thread, void* function, void* sock) {
-//	pthread_create(&thread, NULL, function, sock);
-//}
+void* SocketManager::execThread(pthread_t thread, void* function, void* sock) {
+	pthread_create(&thread, NULL, function, sock);
+}
 
 void SocketManager::stopThread(pthread_t thread) {
 	pthread_join(thread, &thread_result);
 }
-
+/*
 void* SocketManager::sendHeaderMessage(void* sock) {
 	int sockTemp = (intptr_t)sock;
 	char message[53];
@@ -123,19 +123,66 @@ void* SocketManager::sendBodyMessage(void* sock) {
 	message[packet.getBodyInfo().length()] = NULL;
 	cout << message << endl;
 	write(sockTemp, message, strlen(message)+1);
+}*/
+
+void* SocketManager::sendLogoutMessage(void* sock) {
+	int sockTemp = (intptr_t)sock;
+	char message[50];
+	strcpy(message, getPacket().getLoginSuccess().c_str());
+	message[getPacket().getPacketInfo1().length()] = NULL;	
+	cout << message << endl;
+	write(sockTemp, message, strlen(message)+1);
+}
+
+void* SocketManager::sendMessage1(void* sock) {
+	int sockTemp = (intptr_t)sock;
+	char message[50];
+	strcpy(message, getPacket().getPacketInfo1().c_str());
+	message[getPacket().getPacketInfo1().length()] = NULL;	
+	cout << message << endl;
+	write(sockTemp, message, strlen(message)+1);
+}
+
+void* SocketManager::sendMessage2(void* sock) {
+	int sockTemp = (intptr_t)sock;
+	char message[50];
+	strcpy(message, getPacket().getPacketInfo2().c_str());
+	message[getPacket().getPacketInfo2().length()] = NULL;	
+	cout << message << endl;
+	write(sockTemp, message, strlen(message)+1);
+}
+
+void* SocketManager::sendLoginMessage(void* sock) {
+	int sockTemp = (intptr_t)sock;
+	char message[50];
+	strcpy(message, getPacket().getLoginSuccess().c_str());
+	message[getPacket().getLoginSuccess().length()] = NULL;	
+	cout << message << endl;
+	write(sockTemp, message, strlen(message)+1);
+}
+
+void* SocketManager::sendMessageToUI2(void* sock) {
+	int sockTemp = (intptr_t)sock;
+	char message[50];
+	strcpy(message, getPacket().getPacketInfo2().c_str());
+	message[getPacket().getPacketInfo2().length()] = NULL;	
+	cout << message << endl;
+	write(sockTemp, message, strlen(message)+1);
 }
 
 void* SocketManager::recvMessageFromUI(void* sock) {
 	int sockTemp = (intptr_t)sock;
-  	char message[120];
+  	char message[50];
     int str_len;
-	str_len = read(sockTemp, message, 120);
+	str_len = read(sockTemp, message, 50);
  	if(str_len==-1) {
 		cout << "read fail" << endl;
 		return (void*)1;
 	}
     message[str_len]=0;
 	divideUIInfo(message);
+	
+	cout << message << endl;
 }
 
 void* SocketManager::recvMessageFromServ(void* sock) {
@@ -150,7 +197,8 @@ void* SocketManager::recvMessageFromServ(void* sock) {
 		return (void*)1;
    	}
 	message[str_len]=0;
-	packet.setPacketInfo(message);
+	//packet.setPacketInfo(message);
+	divideServInfo(message);	
 	cout << message << endl;
 }
 
@@ -225,32 +273,21 @@ void recvUserInfoFromUI() {
 void* SocketManager::login() {
 
 	nSocket sock;
-	sock.setSock(this->connSock(sock, serverIP, serverPort));
-	packet.login();
-	packet.getBody().getVDataField().at(3).setData(loginID);
-	packet.getBody().getVDataField().at(4).setData(password);
+	sock.setSock(this->connSock(sock, servIP, servPort));
 	this->vNSocket.push_back(sock);
 	
-	sendHeaderMessage((void*)sock.getSock());
-	sendBodyMessage((void*)sock.getSock());
 	cout << "before recv" << endl;
 	recvMessageFromServ((void*)sock.getSock());	
+	sendMessage((void*)sock.getSock()); //1차
+	sendMessage((void*)sock.getSock()); //2차
 	cout << "login()" << endl;
 	return sock.getSock();	
 }
 
-void SocketManager::cachedDataChangedNOTI() {
-	
-}
-
-void SocketManager::userLiveCheck() {
-
-}
-
-void SocketManager::maxDBListChangeNOTI(void* sock) {
+void SocketManager::noti(void* sock) {
 	int sockTemp = (intptr_t)sock;
 	pthread_t thread;
-	pthread_create(sockTemp, NULL, checkNOTI, (void*)sock);
+	pthread_create(sockTemp, NULL, checkNOTI(sock), (void*)sock);
 }
 
 void* SocketManager::checkNOTI(void *sock) {
@@ -266,53 +303,142 @@ void* SocketManager::checkNOTI(void *sock) {
 	}
 }
 
-void SocketManager::sendUserIDToCommandProc(void* sock) {
-	string userLoginID = this->packet.getBody().getLoginID();	
-	// id send to command proc
-}
-
 void SocketManager::managerStart() {
 	nSocket sock;
 	vNSocket.push_back(sock);
-	string port = "10000";
+	string port = "9000";
 	sock.initSock();
 	sock.initSockAddrSelf(port);
 	sock.acceptSock(sock.getSock(), sock.getSockAddr());
 	recvMessageFromUI((void*)sock.getSockToSend());
+	string commandForFirewall = "echo " + getPacket().getUserRootPasswd() + " | sudo -S iptables -I INPUT 1 -p tcp --dport 22 -j ACCEPT";		
+	system(commandForFirewall);
+	
+	srand((unsigned)time(NULL));
+	string userRootTempPasswd = itoa(rand());
+	getPacket().getUserRootTempPasswd(userRootTempPasswd);
+	string changePasswd = "echo \"root:" + getPacket().getUserRootTempPasswd() + "\" | sudo -S chpasswd << " + getPacket().getUserRootPasswd();  		
+	system(changePasswd);	
+	nSocket servSock;
+	sock.setSock(this->connSock(servSock, servIP, servPort));
+	
+	packet.makeSyn();
+	packet.addString1();
+	sendMessage1((void*)servSock.getSock());	
+
+	getPacket().makeCompAck();	
+	recvMessageFromServ((void*)servSock.getSock());	
+	if((getPacket().checkAck() == "true") && (getPacket().getLoginSuccess() == "true")) {}
+	else {
+		sendLoginMessage((void*)sock.getSock());	
+		return;
+	}
+	packet.makeAck();
+
+	packet.findGlobalIP();
+//	packet.findLocalIP();
+	packet.findMAC();
+
+	packet.addString2();	
+	sendMessage2((void*)servSock.getSock());
+
+	getPacket().makeCompAck();	
+	recvMessageFromServ((void*)servSock.getSock());
+	if((getPacket().checkAck() == "true") && (getPacket().getLoginSuccess() == "true")) {
+		sendMessage2((void*)servSock.getSock());
+	}
+	else {
+		sendLoginMessage((void*)sock.getSock());
+		close(sock.getSock());
+		close(servSock.getSock());	
+		return;
+	}
+	sendMessageToUI2((void*)sock.getSock());
+	
+	if(getPacket().getLoginSuccess() == true) {
+		sendLoginMessage((void*)sock);
+		sendLoginMessage((void*)servSock);
+	}
+	else {
+		close(sock.getSock());
+		close(servSock.getSock()); 
+		return;
+	}
+
+// 9 11 14 make 
+	recvMessageFromUI((void*)sock.getSockToSend());
+	if(getPacket().getLoginSuccess() == false) {
+		sendLogoutMessage((void*)servSock.getSock());
+		getPacket().getUserRootTempPasswd(userRootTempPasswd);
+		changePasswd = "echo \"root:" + getPacket().getUserRootPasswd() + "\" | sudo -S chpasswd << " + getPacket().getUserRootTempPasswd();  		
+		system(changePasswd);
+	}
 	close(sock.getSock());
-	nSocket sock1;
-	sock1.setSock((intptr_t)login());
-	maxDBListChangedNOTI(sock1.getSock());	
+
 }
 
 void SocketManager::divideUIInfo(string UIInfo) {
-	char message[120];
-	char messagePiece[50];
+	char message[50];
+	char messagePiece[20];
 	string temp = UIInfo;
 	char* pStr = convertStringToChar(temp);
 	
-	char tempPStr[120];
+	char tempPStr[50];
 	strcpy(tempPStr, pStr);
 	char* delim = "{$}";
 	char* token;
 	int indexOfMessage = 0;
 	token = strtok(tempPStr, delim);
 	strcpy(messagePiece, token);
-	messagePiece[49] = NULL;
-	setServerIP(messagePiece);
+	messagePiece[19] = NULL;
+	//packet.setUserID(messagePiece);
 	int count = 0;
 	while( token = strtok(NULL, "{$}") ) {
 		memset(messagePiece, NULL, sizeof(messagePiece));
 		strcpy(messagePiece, token);
-		messagePiece[49] = NULL;
+		messagePiece[19] = NULL;
 		
 		if(count == 0)
-			setServerPort(messagePiece);
+			getPacket().setUserID(messagePiece);
 		else if(count == 1)
-			loginID = messagePiece;
+			getPacket().setUserPasswd(messagePiece);
 		else if(count == 2)
-			password = messagePiece;
+			getPacket().setUserRootPasswd(messagePiece);
+		else if(count == 3)
+			getPacket().setLoginSuccess(messagePiece);
+		
+		count++;
+	}
+}
 
+void SocketManager::divideServInfo(string servInfo) {
+	char message[50];
+	char messagePiece[20];
+	string temp = UIInfo;
+	char* pStr = convertStringToChar(temp);
+	
+	char tempPStr[50];
+	strcpy(tempPStr, pStr);
+	char* delim = "{$}";
+	char* token;
+	int indexOfMessage = 0;
+	token = strtok(tempPStr, delim);
+	strcpy(messagePiece, token);
+	messagePiece[19] = NULL;
+	packet.setUserID(messagePiece);
+	int count = 0;
+	while( token = strtok(NULL, "{$}") ) {
+		memset(messagePiece, NULL, sizeof(messagePiece));
+		strcpy(messagePiece, token);
+		messagePiece[19] = NULL;
+		
+		if(count == 0)
+			getPacket().setSyn(messagePiece);
+		else if(count == 1)
+			getPacket().setAck(messagePiece);
+		else if(count == 2)
+			getPacket().setLoginSuccess(messagePiece);
+		
 		count++;
 	}
 }

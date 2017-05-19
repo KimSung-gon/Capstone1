@@ -18,6 +18,7 @@ private:
 	string password;
 	string serverIP;
 	string serverPort;
+	vector<Packet> vPacket;
 	vector<nSocket> vNSocket;
 	vector<pthread_t> vThread;
 	void* thread_result;
@@ -38,6 +39,7 @@ public:
 	void setPacket(Packet packet);
 	Packet getPacket();
 
+	vector<Packet> getVPacket();
 	vector<nSocket> getVNSocket();
 	vector<pthread_t> getVThread();
 
@@ -58,6 +60,7 @@ public:
 	void errorHandling(char* message);
 	char* convertStringToChar(const string &str);
 	void itoa(int num, char *str);
+	int atoi(char *str);
 	int connSock(nSocket sock, string IP, string port);
 	
 	void login();
