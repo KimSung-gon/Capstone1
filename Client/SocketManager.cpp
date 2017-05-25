@@ -37,6 +37,10 @@ vector<nSocket> SocketManager::getVNSocket() {
 vector<pthread_t> SocketManager::getVThread() {
 	return this->vThread;
 }
+
+vector<string> SocketManager::getVFile() {
+	return this->vFile;
+}
  
 void SocketManager::setNSocket(nSocket nSock) {
 	this->vNSocket.push_back(nSock);
@@ -52,6 +56,22 @@ nSocket SocketManager::getNSocket(long unsigned int indexOfMessage) {
 
 pthread_t SocketManager::getThread(long unsigned int indexOfMessage) {
 	return this->vThread.at(indexOfMessage);
+}
+
+void SocketManager::setFullSecondPacket(string fullSecondPacket) {
+	this->fullSecondPacket = fullSecondPacket;
+}
+
+string SocketManager::getFullSecondPacket() {
+	return this->fullSecondPacket;
+}
+
+void SocketManager::setTempSecondPacket(string tempSecondPacket) {
+	this->tempSecondPacket = tempSecondPacket;
+}
+
+string SocketManager::getTempSecondPacket() {
+	return this->tempSecondPacket;
 }
 
 void* SocketManager::execThread(pthread_t thread, void* function, void* sock) {
@@ -145,7 +165,17 @@ void* SocketManager::sendMessage1(void* sock) {
 
 void* SocketManager::sendMessage2(void* sock) {
 	int sockTemp = (intptr_t)sock;
-	char message[50];
+	char message[1000];
+	string temp1 = getPacket().getPacketInfo2() + this->getTempSecondPacket();
+	strcpy(message, temp1.c_str());
+	message[temp1.length()] = NULL;	
+	cout << message << endl;
+	write(sockTemp, message, strlen(message)+1);
+}
+
+void* SocketManager::sendMessage3(void* sock) {
+	int sockTemp = (intptr_t)sock;
+	char message[500];
 	strcpy(message, getPacket().getPacketInfo2().c_str());
 	message[getPacket().getPacketInfo2().length()] = NULL;	
 	cout << message << endl;
@@ -170,6 +200,45 @@ void* SocketManager::sendMessageToUI2(void* sock) {
 	write(sockTemp, message, strlen(message)+1);
 }
 
+void* SocketManager::recvMessageLogOut(void* sock) {
+	int sockTemp = (intptr_t)sock;
+  	char message[50];
+    int str_len;
+	str_len = read(sockTemp, message, 50);
+ 	if(str_len==-1) {
+		cout << "read fail" << endl;
+		return (void*)1;
+	}
+    message[str_len]=0;
+	divideUIInfo(message);
+	
+	char message1[50];
+	char messagePiece[20];
+	string temp = message;
+	char* pStr = convertStringToChar(temp);
+	
+	char tempPStr[50];
+	strcpy(tempPStr, pStr);
+	char* delim = "{$}";
+    char* token;
+    int indexOfMessage = 0;
+    token = strtok(tempPStr, delim);
+    strcpy(messagePiece, token);
+    messagePiece[19] = NULL;
+    //packet.setUserID(messagePiece);
+    int count = 0;
+    while( token = strtok(NULL, "{$}") ) {
+        memset(messagePiece, NULL, sizeof(messagePiece));
+        strcpy(messagePiece, token);
+        messagePiece[19] = NULL;
+		if(count == 0)
+			getPacket().setLoginSuccess(messagePiece);
+		
+
+	}
+//	cout << message << endl;
+}
+
 void* SocketManager::recvMessageFromUI(void* sock) {
 	int sockTemp = (intptr_t)sock;
   	char message[50];
@@ -189,15 +258,12 @@ void* SocketManager::recvMessageFromServ(void* sock) {
 	int sockTemp = (intptr_t)sock;
 	char message[500];
 	int str_len;
-	cout << "before read" << endl;
    	str_len = read(sockTemp, message, 500);
-	cout << "after read" << endl;
 	if(str_len==-1) {
 		cout << "recvMessageFromServ fail" << endl;
 		return (void*)1;
    	}
 	message[str_len]=0;
-	//packet.setPacketInfo(message);
 	divideServInfo(message);	
 	cout << message << endl;
 }
@@ -269,7 +335,7 @@ void* commandProcFunction() {
 void recvUserInfoFromUI() {
 
 }
-
+/*
 void* SocketManager::login() {
 
 	nSocket sock;
@@ -283,7 +349,7 @@ void* SocketManager::login() {
 	cout << "login()" << endl;
 	return sock.getSock();	
 }
-
+*/
 void SocketManager::noti(void* sock) {
 	int sockTemp = (intptr_t)sock;
 	pthread_t thread;
@@ -312,14 +378,46 @@ void SocketManager::managerStart() {
 	sock.acceptSock(sock.getSock(), sock.getSockAddr());
 	recvMessageFromUI((void*)sock.getSockToSend());
 	string commandForFirewall = "echo " + getPacket().getUserRootPasswd() + " | sudo -S iptables -I INPUT 1 -p tcp --dport 22 -j ACCEPT";		
-	system(commandForFirewall);
+	char* pStr = convertStringToChar(commandForFirewall);
+	system(pStr);
 	
 	srand((unsigned)time(NULL));
-	string userRootTempPasswd = itoa(rand());
-	getPacket().getUserRootTempPasswd(userRootTempPasswd);
-	string changePasswd = "echo \"root:" + getPacket().getUserRootTempPasswd() + "\" | sudo -S chpasswd << " + getPacket().getUserRootPasswd();  		
-	system(changePasswd);	
+	char* tempInt;
+    itoa(rand(), tempInt);
+	string userRootTempPasswd = tempInt;
+	getPacket().setUserRootTempPasswd(userRootTempPasswd);
+	string changePasswd = "echo \"root:" + getPacket().getUserRootTempPasswd() + "\" | sudo -S chpasswd << " + getPacket().getUserRootPasswd();  
+	// ssh tunneling	
+	pStr = convertStringToChar(changePasswd);
+	system(pStr);
+	string arpStatic = "echo " + getPacket().getUserRootTempPasswd() + " | sudo -S arp -s 10.30.115.183 cc:3d:82:48:f0:30";
+	pStr = convertStringToChar(arpStatic);
+	system(pStr);
+	pStr = convertStringToChar("ls ~/ > ~/LockInsider/tempFileList.txt");
+	system(pStr);
+
+	ifstream infile;
+	infile.open("~/LockInsider/tempFileList.txt");
+	if(infile.fail())
+		return;
+
+	setTempSecondPacket("");
+	string tempSecondPacket1 = "";
+	char inputString[100];
+	while(infile.eof()) {
+		infile.getline(inputString,100);
+		getVFile().push_back(inputString);
+		string temp1 = inputString;
+		tempSecondPacket1 += "{$}" + temp1;	
+	}
+	
+	this->setTempSecondPacket(tempSecondPacket1);
+
+	pStr = convertStringToChar("rm -rf ~/LockInsider/tempFileList.txt");	
+	system("rm -rf ~/LockInsider/tempFileList.txt");	
+	
 	nSocket servSock;
+
 	sock.setSock(this->connSock(servSock, servIP, servPort));
 	
 	packet.makeSyn();
@@ -333,19 +431,21 @@ void SocketManager::managerStart() {
 		sendLoginMessage((void*)sock.getSock());	
 		return;
 	}
-	packet.makeAck();
+	getPacket().makeAck();
 
-	packet.findGlobalIP();
+	getPacket().findGlobalIP();
 //	packet.findLocalIP();
-	packet.findMAC();
+	getPacket().findMAC();
 
-	packet.addString2();	
+	getPacket().addString2();
+	this->addString3();	
 	sendMessage2((void*)servSock.getSock());
-
+	
 	getPacket().makeCompAck();	
 	recvMessageFromServ((void*)servSock.getSock());
+
 	if((getPacket().checkAck() == "true") && (getPacket().getLoginSuccess() == "true")) {
-		sendMessage2((void*)servSock.getSock());
+	//	sendMessage2((void*)servSock.getSock());
 	}
 	else {
 		sendLoginMessage((void*)sock.getSock());
@@ -353,28 +453,27 @@ void SocketManager::managerStart() {
 		close(servSock.getSock());	
 		return;
 	}
-	sendMessageToUI2((void*)sock.getSock());
+	//sendMessageToUI2((void*)sock.getSock());
 	
-	if(getPacket().getLoginSuccess() == true) {
-		sendLoginMessage((void*)sock);
-		sendLoginMessage((void*)servSock);
-	}
-	else {
-		close(sock.getSock());
-		close(servSock.getSock()); 
-		return;
-	}
+	sendLoginMessage((void*)sock.getSock());
+	sendLoginMessage((void*)servSock.getSock());
 
 // 9 11 14 make 
-	recvMessageFromUI((void*)sock.getSockToSend());
-	if(getPacket().getLoginSuccess() == false) {
+	recvMessageLogOut((void*)sock.getSock());
+	if(getPacket().getLoginSuccess() == "false") {
 		sendLogoutMessage((void*)servSock.getSock());
-		getPacket().getUserRootTempPasswd(userRootTempPasswd);
+		getPacket().getUserRootTempPasswd();
 		changePasswd = "echo \"root:" + getPacket().getUserRootPasswd() + "\" | sudo -S chpasswd << " + getPacket().getUserRootTempPasswd();  		
-		system(changePasswd);
+		pStr = convertStringToChar(changePasswd);
+		system(pStr);
 	}
+	
+	commandForFirewall = "echo " + getPacket().getUserRootPasswd() + " | sudo -S iptables -A INPUT 1 -p tcp --dport 22 -j DROP";		
+	pStr = convertStringToChar(commandForFirewall);
+	system(pStr);
+	// after 1 second iptables 22 port shut down
 	close(sock.getSock());
-
+	close(servSock.getSock());
 }
 
 void SocketManager::divideUIInfo(string UIInfo) {
@@ -414,7 +513,7 @@ void SocketManager::divideUIInfo(string UIInfo) {
 void SocketManager::divideServInfo(string servInfo) {
 	char message[50];
 	char messagePiece[20];
-	string temp = UIInfo;
+	string temp = servInfo;
 	char* pStr = convertStringToChar(temp);
 	
 	char tempPStr[50];
@@ -441,4 +540,8 @@ void SocketManager::divideServInfo(string servInfo) {
 		
 		count++;
 	}
+}
+
+void SocketManager::addString3() {
+//	getPacket().getPacketInfo2() + 
 }
