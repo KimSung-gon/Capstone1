@@ -1,10 +1,10 @@
-#include "capstone.h"
+#include "project.h"
 #include <QApplication>
 
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-    Capstone w;
+    project w;
     w.show();
     return a.exec();
 }
