@@ -25,7 +25,7 @@ private:
 	string userRootPasswd;
 	string userRootTempPasswd;
 	string userGlobalIP;
-//	string userLocalIP;
+	string userLocalIP;
 	string userMAC;
 	string dataLength;
 	string packetInfo1;
@@ -42,14 +42,14 @@ public:
 	void setUserRootPasswd(string userRootPasswd);
 	void setUserRootTempPasswd(string userRootTempPasswd);
 	void setUserGlobalIP(string userGlobalIP);
-//	void setUserLocalIP(string userLocalIP);
+	void setUserLocalIP(string userLocalIP);
 	void setUserMAC(string userMAC);
 	void setPacketInfo1(string packetInfo1);
 	void setPacketInfo2(string packetInfo2);
 	void setSyn(int syn);
 	void setAck(int ack);
 	void setCompAck(int compAck);
-	void setLoginSuccess(string loginSuccess);	
+	void setLoginSuccess(string loginSuccess); 
 
 	string getCommand();
 	string getUserID();
@@ -57,7 +57,7 @@ public:
 	string getUserRootPasswd();
 	string getUserRootTempPasswd();
 	string getUserGlobalIP();
-//	string getUserLocalIP();
+	string getUserLocalIP();
 	string getUserMAC();
 	string getDataLength();
 	string getPacketInfo1();
@@ -74,11 +74,12 @@ public:
 	void addString2();
 
 	void findGlobalIP();
-//	void findLocalIP();
+	void findLocalIP();
 	void findMAC();	
 	void makeSyn();
+	void makeAck();
 	void makeCompAck();	
-	void checkAck();
+	string checkAck();
 
 	char* convertStringToChar(const string &str);
 	string convertDecStringToHexString(const string decString);	

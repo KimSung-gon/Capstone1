@@ -42,7 +42,7 @@ public:
 	void setUserRootPasswd(string userRootPasswd);
 	void setUserRootTempPasswd(string userRootTempPasswd);
 	void setUserGlobalIP(string userGlobalIP);
-//	void setUserLocalIP(string userLocalIP);
+	void setUserLocalIP(string userLocalIP);
 	void setUserMAC(string userMAC);
 	void setPacketInfo1(string packetInfo1);
 	void setPacketInfo2(string packetInfo2);
@@ -74,7 +74,7 @@ public:
 	void addString2();
 
 	void findGlobalIP();
-//	void findLocalIP();
+	void findLocalIP();
 	void findMAC();	
 	void makeSyn();
 	void makeAck();

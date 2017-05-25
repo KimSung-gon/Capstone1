@@ -131,22 +131,28 @@ void* SocketManager::sendBodyMessage(void* sock) {
 
 void* SocketManager::sendMessage1(void* sock) {
 	int sockTemp = (intptr_t)sock;
-	char message[packet.getBodyInfo().length()+1];
-	strcpy(message, getVPacket.back().c_str());
-	message[packet.getPacketInfo1().length()] = NULL;
+	string delim = "{$}";
+	string temp1 = delim + packet.getLoginSuccess();
+	char message[temp1.length()+1];
+	//strcpy(message, getVPacket.back().c_str());
+	//message[packet.getPacketInfo1().length()] = NULL;
+	strcpy(message, temp1.c_str());
+	message[temp1.length()] = NULL;
 	cout << message << endl;
 	write(sockTemp, message, strlen(message)+1);
 }
 
 void* SocketManager::sendMessage2(void* sock) {
 	int sockTemp = (intptr_t)sock;
-	char message[packet.getBodyInfo().length()+1];
-	strcpy(message, getVPacket.back().c_str());
-	message[packet.getPacketInfo2().length()] = NULL;
+	char message[getPacket().getPacketInfo2().length()+1];
+	//strcpy(message, getVPacket.back().c_str());
+	//message[packet.getPacketInfo2().length()] = NULL;
+	strcpy(message, getPacket().getPacketInfo2().c_str());
+	message[getPacket().getPacketInfo2().length()] = NULL;
 	cout << message << endl;
 	write(sockTemp, message, strlen(message)+1);
 }
-
+/*
 void* SocketManager::recvMessageFromUI(void* sock) {
 	int sockTemp = (intptr_t)sock;
   	char message[120];
@@ -159,14 +165,12 @@ void* SocketManager::recvMessageFromUI(void* sock) {
     message[str_len]=0;
 	divideUIInfo(message);
 }
-
+*/
 void* SocketManager::recvMessageFromClient1(void* sock) {
 	int sockTemp = (intptr_t)sock;
 	char message[500];
 	int str_len;
-	cout << "before read" << endl;
    	str_len = read(sockTemp, message, 500);
-	cout << "after read" << endl;
 	if(str_len==-1) {
 		cout << "recvMessageFromServ fail" << endl;
 		return (void*)1;
@@ -174,6 +178,35 @@ void* SocketManager::recvMessageFromClient1(void* sock) {
 	message[str_len]=0;
 	divideClientInfo1(message);
 	cout << message << endl;
+}
+
+void* SocketManager::recvMessageFromClient2(void* sock) {
+	int sockTemp = (intptr_t)sock;
+	char message[500];
+	int str_len;
+   	str_len = read(sockTemp, message, 500);
+	if(str_len==-1) {
+		cout << "recvMessageFromServ fail" << endl;
+		return (void*)1;
+   	}
+	message[str_len]=0;
+	divideClientInfo2(message);
+	cout << message << endl;
+}
+
+void* SocketManager::recvMessageLogOut(void* sock) {
+	/*
+	int sockTemp = (intptr_t)sock;
+	char message[20];
+	int str_len;
+   	str_len = read(sockTemp, message, 500);
+	if(str_len==-1) {
+		cout << "recvMessageFromServ fail" << endl;
+		return (void*)1;
+   	}
+	message[str_len]=0;
+	*/
+	getPacket().setLoginSuccess("false");
 }
 
 void SocketManager::errorHandling(char* message) {
@@ -187,7 +220,7 @@ char* SocketManager::convertStringToChar(const string &str) {
 	char *retPtr(new char[str.length() + 1]);
 	
 	copy(str.begin(), str.end(), retPtr);
-	retPtr[str.length()] = '\0';;
+	retPtr[str.length()] = '\0';
 
 	return retPtr;
 }
@@ -217,7 +250,7 @@ void SocketManager::itoa(int num, char* str) {
     *(str+i) = '\0';
 }
 
-void SocketManager::atoi(char *str) {
+int SocketManager::atoi(char *str) {
 	int tot=0;
 	while(*str) {
 		tot = tot*10 + *str - '0';
@@ -252,7 +285,7 @@ void* commandProcFunction() {
 void recvUserInfoFromUI() {
 
 }
-
+/*
 void* SocketManager::login() {
 
 	nSocket sock;
@@ -301,8 +334,15 @@ void SocketManager::sendUserIDToCommandProc(void* sock) {
 	string userLoginID = this->packet.getBody().getLoginID();	
 	// id send to command proc
 }
-
+*/
 void SocketManager::managerStart() {
+
+	string open9000 = "echo 12342323 | sudo -S iptables -I INPUT 1 -p tcp --dport 9000 -j ACCEPT";
+	char *pStr = convertStringToChar(open9000);
+	system(pStr);
+	string open22 = "echo 12342323 | sudo -S iptables -I INPUT 1 -p tcp --dport 22 -j ACCEPT";
+	pStr = convertStringToChar(open22);
+	system(pStr);
 	
 	// read ip, mac list to client list
 	nSocket sock;
@@ -311,28 +351,76 @@ void SocketManager::managerStart() {
 	sock.initSock();
 	sock.initSockAddrSelf(port);
 	sock.acceptSock(sock.getSock(), sock.getSockAddr());
+// multi client
 	recvMessageFromClient1((void*)sock.getSockToSend());
-	for(vector<Packet>::iterator IterPos = getVPacket().begin(); IterPos != getVPacket().end(); ++IterPos) {
-		// check if packet is in client list
+	vector<Registered> vUserList;
+	ifstream infile("checkUserInfo.txt");
+	if(infile.fail()) 
+		getPacket().setLoginSuccess("false");
+	else
+		getPacket().setLoginSuccess("true");
+	char inputString[100];
+	while(infile.eof()) {
+		Registered temp;
+		infile.getline(inputString, 100);
+		temp.setID(inputString);
+		infile.getline(inputString, 100);
+		temp.setPasswd(inputString);
+		infile.getline(inputString, 100);
+		temp.setIP(inputString);
+		infile.getline(inputString, 100);
+		temp.setMAC(inputString);
+		vUserList.push_back(temp);
 	}
+	infile.close();
+	cout << "3" << endl;	
+	//for ID Passwd check
+	packet.setLoginSuccess("true");
+	packet.makeAck();
+	packet.makeSyn();
+	packet.makeCompAck();
+	cout << "3.5" << endl;
+	packet.addString1();
+	int temp = 0;
+	//for(int i=0; i<vUserList.size(); i++) { IP MAC check
+	// check IP MAC ETC
+	// file encryption()
+	//for(vector<Packet>::iterator IterPos = getVPacket().begin(); IterPos != getVPacket().end(); ++IterPos) {
+		// check if packet is in client list
+	//}
 	// execute command and delete history(atomic) 
 		
-	getVPacket().back().makeSyn();
-	sendMessage1((void*)sock.getSock());	
-	if((getVPacket.pop_back().checkAck() == "true") && (getVPacket.pop_back().getLoginSuccess() == "true")) {
-		getVPacket().back().setLoginSuccess("true");		
-	}
-	else {
-		getVPacket().back().setLoginSuccess("false");
-	}
-		
-	nSocket sockClient;
-	sock1.setSock((intptr_t)login());
-	maxDBListChangedNOTI(sock1.getSock());	
+	//getVPacket().back().makeSyn();
+	// 1. check ID, Password
+	cout << "4" << endl;
+	sendMessage1((void*)sock.getSockToSend());	
+//	if((getVPacket.pop_back().checkAck() == "true") && (getVPacket.pop_back().getLoginSuccess() == "true")) {
+//		getVPacket().back().setLoginSuccess("true");		
+//	}
+//	else {
+//		getVPacket().back().setLoginSuccess("false");
+//	}
+	//recvMessageFromClient2((void*)sock.getSockToSend());
+// check IP MAC
+	//sendMessage2((void*)sock.getSock());
+	cout << "7" << endl;
+	string decrypt = "sshpass -p " + getPacket().getUserRootPasswd() + " ssh root@" + getPacket().getUserLocalIP() + " sh < decrypt.sh";
+	pStr = convertStringToChar(decrypt);	
+	system(pStr);
+//  control file move copy disable
+	recvMessageLogOut((void*)sock.getSock());
+	string encrypt = "sshpass -p " + getPacket().getUserRootPasswd() + " ssh root@" + getPacket().getUserLocalIP() + " sh < encrypt.sh";
+//	control file move copy enable
+	pStr = convertStringToChar(encrypt);
+	system(pStr);
+
+	close(sock.getSock());	
+//	nSocket sockClient;
+//	sock1.setSock((intptr_t)login());
 }
 
 void SocketManager::divideClientInfo1(string clientInfo) {
-	Packet packet = new Packet();
+	Packet packet;
 	char message[120];
 	char messagePiece[50];
 	string temp = clientInfo;
@@ -346,7 +434,7 @@ void SocketManager::divideClientInfo1(string clientInfo) {
 	token = strtok(tempPStr, delim);
 	strcpy(messagePiece, token);
 	messagePiece[49] = NULL;
-	setServerIP(messagePiece);
+	getPacket().setUserID(messagePiece);
 	int count = 0;
 	while( token = strtok(NULL, "{$}") ) {
 		memset(messagePiece, NULL, sizeof(messagePiece));
@@ -354,19 +442,21 @@ void SocketManager::divideClientInfo1(string clientInfo) {
 		messagePiece[49] = NULL;
 		
 		if(count == 0)
-			packet.setUserID(messagePiece);
+			this->packet.setUserPasswd(messagePiece);
 		else if(count == 1)
-			packet.setUserPasswd(messagePiece);
+			this->packet.setUserRootPasswd(messagePiece);
 		else if(count == 2)
-			packet.setUserRootPasswd(messagePiece);
-		else if(count == 3) 
-			packet.setSyn(atoi(messagePiece));
+			this->packet.setUserLocalIP(messagePiece);
+		else if(count == 3)
+			this->packet.setUserMAC(messagePiece);
 		else if(count == 4) 
-			packet.setAck(atoi(messagePiece));
-
+			this->packet.setSyn(atoi(messagePiece));
+		else if(count == 5) 
+			this->packet.setAck(atoi(messagePiece));
 		count++;
 	}
-	getVPacket.push_back(pakcet);
+	
+	getVPacket().push_back(packet);
 }
 
 void SocketManager::divideClientInfo2(string clientInfo) {
@@ -391,15 +481,15 @@ void SocketManager::divideClientInfo2(string clientInfo) {
 		messagePiece[49] = NULL;
 	
 		if(count == 0)
-			packet.setUserGlobalIP(messagePiece);
+			getPacket().setUserGlobalIP(messagePiece);
 		else if(count == 1)
-			packet.setUserLocalIP(messagePiece);
+			getPacket().setUserLocalIP(messagePiece);
 		else if(count == 2)
-			packet.setUserMAC(messagePiece);
+			getPacket().setUserMAC(messagePiece);
 		else if(count == 3) 
-			packet.setSyn(atoi(messagePiece));
+			getPacket().setSyn(atoi(messagePiece));
 		else if(count == 4) 
-			packet.setAck(atoi(messagePiece));
+			getPacket().setAck(atoi(messagePiece));
 		
 		count++;
 	}

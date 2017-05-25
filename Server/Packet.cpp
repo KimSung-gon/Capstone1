@@ -1,4 +1,4 @@
-include "Packet.h"
+#include "Packet.h"
 
 void Packet::setCommand(string command) {
     this->command = command;
@@ -12,8 +12,8 @@ void Packet::setUserPasswd(string userPasswd) {
     this->userPasswd = userPasswd;
 }
 
-void Packet::setUserRootPasswd(string userRootPasswd) {
-	this->userRootPasswd = userRootPasswd;
+void Packet::setUserRootPasswd(string userRootPasswd1) {
+	userRootPasswd = userRootPasswd1;
 }
  
 void Packet::setUserRootTempPasswd(string userRootTempPasswd) {
@@ -23,11 +23,11 @@ void Packet::setUserRootTempPasswd(string userRootTempPasswd) {
 void Packet::setUserGlobalIP(string userGlobalIP) {
     this->userGlobalIP = userGlobalIP;
 }
-/*
+
 void Packet::setUserLocalIP(string userLocalIP) {
 	this->userLocalIP = userLocalIP;
 }
-*/
+
 void Packet::setUserMAC(string userMAC) {
     this->userMAC = userMAC;
 }
@@ -40,7 +40,7 @@ void Packet::setAck(int ack) {
 	this->ack = ack;
 }
 
-string Packet::setLoginSuccess(string loginSuccess) {
+void Packet::setLoginSuccess(string loginSuccess) { 
 	this->loginSuccess = loginSuccess;
 }
 
@@ -67,11 +67,11 @@ string Packet::getUserRootTempPasswd() {
 string Packet::getUserGlobalIP() {
     return userGlobalIP;
 }
-/*
+
 string Packet::getUserLocalIP() {
 	return userLocalIP;
 }
-*/
+
 string Packet::getUserMAC() {
     return userMAC;
 }
@@ -88,39 +88,36 @@ string Packet::getPacketInfo2() {
     return packetInfo2;
 }
 
-int Packet::getSyn() {
-	return syn;
-}
-
-int Packet::getAck() {
-	return ack;
-}
-
 string Packet::getLoginSuccess() {
 	return loginSuccess;
 }
 
 void Packet::addString1() {
-
-    packetInfo1 = "";
-    packetInfo1 = packetInfo1.append(this->getCommand() 
-		+ "{$}" + this->getUserID() 
-		+ "{$}" + this->getUserPasswd() 
-		+ "{$}" + this->getUserRootTempPasswd() 
-		+ "{$}" + this->getSyn()
-		+ "{$}" + this->getAck()
+	
+	char str1[20];
+	char str2[20];
+	itoa(this->getSyn(), str1);
+	itoa(this->getAck(), str2);
+   	string temp ="{$}"; 
+	packetInfo1 = "";
+    packetInfo1 = packetInfo1.append(  
+		 temp + str1 
+		+ "{$}" + str2 
+		+ "{$}" + this->getLoginSuccess() 
 		);
 }
 
 void Packet::addString2() {
-
+	
+	char str1[20];
+	char str2[20];
     packetInfo2 = "";
-    packetInfo2 = packetInfo2.append(this->getCommand() 
-		+ "{$}" + this->getUserGlobalIP()
-//		+ "{$}" + this->getUserLocalIP()
+    packetInfo2 = packetInfo2.append( 
+		 "{$}" + this->getUserGlobalIP()
+		+ "{$}" + this->getUserLocalIP()
 		+ "{$}" + this->getUserMAC() 
-		+ "{$}" + this->getSyn()
-		+ "{$}" + this->getAck()
+		+ "{$}" + str1 
+		+ "{$}" + str2 
 		);
 }
 
@@ -180,26 +177,6 @@ void Packet::findMAC() {
 	this->setUserMAC(mac);
 }
 
-void makeSyn() {
-	srand((unsigned)time(NULL));
-	setSyn(rand());
-}
-
-void makeAck(){
-	setAck(getSyn() + 1);
-}
-
-void makeCompAck() {
-	setCompAck(getSyn() + 1);
-}
-
-string checkAck() {
-	if(getCompAck() == getAck())
-		return "true";
-	else
-		return "false";
-}
-
 char* Packet::convertStringToChar(const string &str){
     
     char *retPtr(new char[str.length() + 1]);
@@ -254,3 +231,41 @@ string Packet::systemCommand(string sysCommand) {
 	pclose(stream);
     return output.str();
 }
+
+int Packet::getSyn() {
+	return syn;
+}
+
+int Packet::getAck() {
+	return ack;
+}
+
+void Packet::makeSyn() {
+	srand((unsigned)time(NULL));
+	cout << "rand " << rand() << endl;
+	setSyn(rand());
+}
+
+void Packet::makeAck() {
+	setAck(getSyn() + 1);
+}
+
+void Packet::makeCompAck() {
+	setCompAck(getSyn() + 1);
+}
+
+int Packet::getCompAck() {
+	return compAck;
+}
+
+void Packet::setCompAck(int compAck) {
+	this->compAck = compAck;
+}
+
+string Packet::checkAck() {
+	if(getCompAck() == getAck())
+		return "true";
+	else
+		return "false";
+}
+

@@ -7,7 +7,7 @@
 #include <fstream>
 #include "Packet.h"
 #include "nSocket.h"
-#define tempServIP 10.30.14.64
+#define tempServIP 10.30.119.196
 #define tempServPort 9000
 
 using namespace std;

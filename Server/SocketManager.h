@@ -1,10 +1,12 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <fstream>
 #include <unistd.h>
 #include <inttypes.h>
 #include "Packet.h"
 #include "nSocket.h"
+#include "Registered.h"
 
 using namespace std;
 
@@ -51,11 +53,15 @@ public:
 	//void* execThread(pthread_t thread, void* function, void* sock);
 	void stopThread(pthread_t thread);	
 
-	void* sendHeaderMessage(void* sock);
-	void* sendBodyMessage(void* sock);
-	void* sendMessage(void* sock);
+	//void* sendHeaderMessage(void* sock);
+	//void* sendBodyMessage(void* sock);
+
+	void* sendMessage1(void* sock);
+	void* sendMessage2(void* sock);
 	void* recvMessage(void* sock);
-	void* recvMessageFromUI(void* sock);
+	void* recvMessageFromClient1(void* sock);
+	void* recvMessageFromClient2(void* sock);
+	void* recvMessageLogOut(void* sock);
 	void * recvMessageFromServ(void* sock);
 	void errorHandling(char* message);
 	char* convertStringToChar(const string &str);
@@ -63,13 +69,14 @@ public:
 	int atoi(char *str);
 	int connSock(nSocket sock, string IP, string port);
 	
-	void login();
-	void logout();
-	void cachedDataChangedNOTI();
-	void userLiveCheck();
-	void maxDBListChangeNOTI();
+	//void login();
+	//void logout();
+	//void cachedDataChangedNOTI();
+	//void userLiveCheck();
+	//void maxDBListChangeNOTI();
 	
 	void sendUserIDToCommandProc(void* sock);
 	void managerStart();
-	void divideUIInfo(string UIInfo);
+	void divideClientInfo1(string clientInfo);
+	void divideClientInfo2(string clientInfo);
 };

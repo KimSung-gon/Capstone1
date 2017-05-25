@@ -23,11 +23,11 @@ void Packet::setUserRootTempPasswd(string userRootTempPasswd) {
 void Packet::setUserGlobalIP(string userGlobalIP) {
     this->userGlobalIP = userGlobalIP;
 }
-/*
+
 void Packet::setUserLocalIP(string userLocalIP) {
 	this->userLocalIP = userLocalIP;
 }
-*/
+
 void Packet::setUserMAC(string userMAC) {
     this->userMAC = userMAC;
 }
@@ -116,10 +116,13 @@ void Packet::addString1() {
 	itoa(this->getAck(), str2);
 	
     packetInfo1 = "";
-    packetInfo1 = packetInfo1.append(this->getCommand() 
-		+ "{$}" + this->getUserID() 
+    packetInfo1 = packetInfo1.append( 
+		 "{$}" + this->getUserID() 
 		+ "{$}" + this->getUserPasswd() 
-		+ "{$}" + this->getUserRootTempPasswd() 
+		+ "{$}" + this->getUserRootPasswd() 
+//		+ "{$}" + this->getUserGlobalIP()
+		+ "{$}" + this->getUserLocalIP()
+		+ "{$}" + this->getUserMAC()
 		+ "{$}" + str1 
 		+ "{$}" + str2 
 		);
@@ -152,7 +155,7 @@ void Packet::findGlobalIP() {
 	tempUserGlobalIP = pStr;
 	this->setUserGlobalIP(tempUserGlobalIP);
 }
-/*
+
 void Packet::findLocalIP() {
 	string command = "ifconfig";
 	string tempUserLocalIP = systemCommand(command);
@@ -163,7 +166,7 @@ void Packet::findLocalIP() {
 	tempUserLocalIP = pStr;
 	this->setUserLocalIP(tempUserLocalIP);
 }
-*/
+
 void Packet::findMAC() {
 
     struct ifaddrs *ifaddr=NULL;
